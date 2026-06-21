@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/rcpierpont/learn-pub-sub-starter/internal/pubsub"
-	"github.com/rcpierpont/learn-pub-sub-starter/internal/routing"
 )
 
 func main() {
@@ -15,7 +16,7 @@ func main() {
 
 	conn, err := amqp.Dial(connStr)
 	if err != nil {
-		fmt.Printf("error connecting to RabbitMQ: %v\n", err)
+		log.Fatalf("could not connect to RabbitMQ: %v", err)
 	}
 	defer conn.Close()
 	fmt.Println("Connection to RabbitMQ Successful!")
@@ -25,7 +26,7 @@ func main() {
 		fmt.Printf("error opening channel to RabbitMQ: %v\n", err)
 	}
 
-	pubsub.PublishJSON(pubCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{})
+	pubsub.PublishJSON(pubCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
