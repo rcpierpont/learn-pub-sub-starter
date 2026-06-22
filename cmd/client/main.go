@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"os"
-	"os/signal"
-
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
@@ -40,9 +37,37 @@ func main() {
 	}
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
-	fmt.Println("Interrupt signal received - exiting program.")
+	gs := gamelogic.NewGameState(username)
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
 
+		switch words[0] {
+		case "spawn":
+			err = gs.CommandSpawn(words)
+			if err != nil {
+				log.Fatalf("error executing spawn command: %v", err)
+			}
+		case "move":
+			armyMove, err := gs.CommandMove(words)
+			if err != nil {
+				log.Fatalf("error executing move command: %v", err)
+			}
+			fmt.Printf("Player %s move successful!\n", armyMove.Player.Username)
+		case "status":
+			gs.CommandStatus()
+		case "help":
+			gamelogic.PrintClientHelp()
+		case "spam":
+			fmt.Println("Spamming not allowed yet!")
+		case "quit":
+			gamelogic.PrintQuit()
+			return
+		default:
+			fmt.Println("command not recognized, try again")
+			continue
+		}
+	}
 }
