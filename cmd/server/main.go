@@ -59,7 +59,7 @@ func main() {
 			}
 			fmt.Println("Pause message sent!")
 		} else if words[0] == "resume" {
-			fmt.Println("sending pause message...")
+			fmt.Println("sending resume message...")
 			err = pubsub.PublishJSON(
 				pubCh,
 				routing.ExchangePerilDirect,
@@ -68,10 +68,10 @@ func main() {
 					IsPaused: false},
 			)
 			if err != nil {
-				log.Printf("could not send pause message: %v", err)
+				log.Printf("could not send resume message: %v", err)
 				continue
 			}
-			fmt.Println("Pause message sent!")
+			fmt.Println("Resume message sent!")
 		} else if words[0] == "quit" {
 			fmt.Println("exiting...")
 			break

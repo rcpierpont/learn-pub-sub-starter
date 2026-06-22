@@ -25,19 +25,33 @@ func main() {
 		log.Fatalf("Error when prompting for username: %v", err)
 	}
 
-	_, queue, err := pubsub.DeclareAndBind(
+	/*
+		_, queue, err := pubsub.DeclareAndBind(
+			conn,
+			routing.ExchangePerilDirect,
+			fmt.Sprintf("%s.%s", routing.PauseKey, username),
+			routing.PauseKey,
+			pubsub.QueueTypeTransient,
+		)
+		if err != nil {
+			log.Fatalf("error subscribing to pause queue: %v", err)
+		}
+		fmt.Printf("Queue %v declared and bound!\n", queue.Name)
+	*/
+	gs := gamelogic.NewGameState(username)
+
+	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
 		fmt.Sprintf("%s.%s", routing.PauseKey, username),
 		routing.PauseKey,
 		pubsub.QueueTypeTransient,
+		handlerPause(gs),
 	)
 	if err != nil {
 		log.Fatalf("error subscribing to pause queue: %v", err)
 	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	gs := gamelogic.NewGameState(username)
 	for {
 		words := gamelogic.GetInput()
 		if len(words) == 0 {
@@ -48,12 +62,13 @@ func main() {
 		case "spawn":
 			err = gs.CommandSpawn(words)
 			if err != nil {
-				log.Fatalf("error executing spawn command: %v", err)
+				fmt.Printf("error executing spawn command: %v", err)
 			}
 		case "move":
 			armyMove, err := gs.CommandMove(words)
 			if err != nil {
-				log.Fatalf("error executing move command: %v", err)
+				fmt.Printf("error executing move command: %v", err)
+				continue
 			}
 			fmt.Printf("Player %s move successful!\n", armyMove.Player.Username)
 		case "status":
