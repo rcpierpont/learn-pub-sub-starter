@@ -26,17 +26,30 @@ func main() {
 	}
 
 	gs := gamelogic.NewGameState(username)
-
+	moveCh, err := conn.Channel()
 	if err != nil {
-		log.Fatalf("Error binding client %s army moves queue\n", username)
+		fmt.Printf("error opening move channel: %v", err)
 	}
+
 	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilTopic,
 		fmt.Sprintf("%s.%s", routing.ArmyMovesPrefix, username),
 		fmt.Sprintf("%s.*", routing.ArmyMovesPrefix),
 		pubsub.QueueTypeTransient,
-		handlerMove(gs),
+		handlerMove(gs, moveCh),
+	)
+	if err != nil {
+		log.Fatalf("Error subscribing client to army moves queue: %v\n", err)
+	}
+
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.WarRecognitionsPrefix,
+		fmt.Sprintf("%s.*", routing.WarRecognitionsPrefix),
+		pubsub.QueueTypeDurable,
+		handlerWar(gs),
 	)
 
 	err = pubsub.SubscribeJSON(
@@ -64,11 +77,6 @@ func main() {
 				fmt.Printf("error executing spawn command: %v", err)
 			}
 		case "move":
-			moveCh, err := conn.Channel()
-			if err != nil {
-				fmt.Printf("error opening move channel: %v", err)
-			}
-
 			armyMove, err := gs.CommandMove(words)
 			if err != nil {
 				fmt.Printf("error executing move command: %v", err)
@@ -85,6 +93,7 @@ func main() {
 				fmt.Printf("error publishing move message to queue: %v", err)
 				continue
 			}
+
 			fmt.Printf("Player %s move successful!\n", armyMove.Player.Username)
 		case "status":
 			gs.CommandStatus()
