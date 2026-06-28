@@ -1,28 +1,34 @@
 package pubsub
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"encoding/json"
-	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
-
-	data, err := json.Marshal(val)
+	dat, err := json.Marshal(val)
 	if err != nil {
-		fmt.Printf("error marshalling data %v\n", val)
 		return err
 	}
-	err = ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
+	return ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
 		ContentType: "application/json",
-		Body:        data,
+		Body:        dat,
 	})
+}
+
+func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+	err := encoder.Encode(val)
 	if err != nil {
-		fmt.Printf("error publishing to channel %v\n", err)
 		return err
 	}
-
-	return nil
+	return ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
+		ContentType: "application/gob",
+		Body:        buffer.Bytes(),
+	})
 }
